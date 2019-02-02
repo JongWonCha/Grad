@@ -1,0 +1,12 @@
+﻿  IOCP.cpp
+d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(44): warning C4996: 'WSASocketA': Use WSASocketW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\10\include\10.0.17763.0\um\winsock2.h(3416): note: 'WSASocketA' 선언을 참조하십시오.
+d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(118): warning C4474: 'printf' : 서식 문자열에 전달된 인수가 너무 많습니다.
+  d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(118): note: 자리 표시자 및 해당 매개 변수에는 variadic 인수가 0개 필요하지만 1개가 제공되었습니다.
+d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(193): warning C4474: 'printf' : 서식 문자열에 전달된 인수가 너무 많습니다.
+  d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(193): note: 자리 표시자 및 해당 매개 변수에는 variadic 인수가 0개 필요하지만 1개가 제공되었습니다.
+d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(215): warning C4474: 'printf' : 서식 문자열에 전달된 인수가 너무 많습니다.
+  d:\졸업연구\서버\iocp_framework\iocp_framework\iocp.cpp(215): note: 자리 표시자 및 해당 매개 변수에는 variadic 인수가 0개 필요하지만 1개가 제공되었습니다.
+  Server.cpp
+  코드를 생성하고 있습니다...
+  iocp_framework.vcxproj -> D:\졸업연구\서버\iocp_framework\Debug\iocp_framework.exe
