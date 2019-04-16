@@ -4,15 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "TestCGameMode.generated.h"
+#include "battarycollecterUEGameMode.generated.h"
 
 UCLASS(minimalapi)
-class ATestCGameMode : public AGameModeBase
+class AbattarycollecterUEGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
 public:
-	ATestCGameMode();
+	AbattarycollecterUEGameMode();
 };
 
 

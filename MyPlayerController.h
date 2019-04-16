@@ -5,36 +5,46 @@
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
 #include "cSocket.h"
-#include "TestCCharacter.h"
+#include "OtherCharacter.h"
 #include "MyPlayerController.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class TESTC_API AMyPlayerController : public APlayerController
+class BATTARYCOLLECTERUE_API AMyPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-
+	
 public:
 	AMyPlayerController();
 	~AMyPlayerController();
-	
+
+	// id
+	UFUNCTION(BlueprintPure, Category = "Properties")
+	int GetSessionId();
+
+	// 다른 캐릭터
+	UPROPERTY(EditAnywhere, Category = "Spawning")
+	TSubclassOf<class ACharacter> WhoToSpawn;
+
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	int GetId() { return Playerid; }
-	void SetId(int id) { Playerid = id; }
+	// id 매칭
+	AActor* FindActorBySessionId(TArray<AActor*> ActorArray, const int& SeesionId);
 
-	void MakePlayer(sc_packet_login * packet);
-	bool SendPlayerInfo();
-
-	//AActor * FindActorbyId(TArray<AActor*> ActorArray, const int &Playerid);
-
+	// 월드 정보 수신
+	void RecvWorldInfo(cCharactersInfo * ci);
+	
 private:
-	cSocket * socket;
+	ClientSocket * Socket;
 	bool bIsConnected;
-	int Playerid;
+	int SessionId;
+	cCharactersInfo * ci;
 
+	bool SendPlayerInfo();
+	bool UpdateWorldInfo();
+	void UpdatePlayerInfo(const location & info);
 };

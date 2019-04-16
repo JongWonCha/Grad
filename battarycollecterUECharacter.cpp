@@ -1,6 +1,6 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "TestCCharacter.h"
+#include "battarycollecterUECharacter.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -8,13 +8,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "OtherCharacter.h"
 #include "Engine/World.h"
 #include "MyPlayerController.h"
 
 //////////////////////////////////////////////////////////////////////////
-// ATestCCharacter
+// AbattarycollecterUECharacter
 
-ATestCCharacter::ATestCCharacter()
+AbattarycollecterUECharacter::AbattarycollecterUECharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -47,74 +48,68 @@ ATestCCharacter::ATestCCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	bIsAlive = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void ATestCCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+void AbattarycollecterUECharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &ATestCCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ATestCCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("MoveForward", this, &AbattarycollecterUECharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AbattarycollecterUECharacter::MoveRight);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("TurnRate", this, &ATestCCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AbattarycollecterUECharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &ATestCCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AbattarycollecterUECharacter::LookUpAtRate);
 
 	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &ATestCCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &ATestCCharacter::TouchStopped);
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &AbattarycollecterUECharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &AbattarycollecterUECharacter::TouchStopped);
 
 	// VR headset functionality
-	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ATestCCharacter::OnResetVR);
+	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AbattarycollecterUECharacter::OnResetVR);
 }
 
 
-void ATestCCharacter::OnResetVR()
+void AbattarycollecterUECharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
 }
 
-void ATestCCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+void AbattarycollecterUECharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
 		Jump();
 }
 
-void ATestCCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+void AbattarycollecterUECharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 		StopJumping();
 }
 
-void ATestCCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	// UE_LOG(LogClass, Log, TEXT("asd"));
-}
-
-
-void ATestCCharacter::TurnAtRate(float Rate)
+void AbattarycollecterUECharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
 }
 
-void ATestCCharacter::LookUpAtRate(float Rate)
+void AbattarycollecterUECharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
-void ATestCCharacter::MoveForward(float Value)
+void AbattarycollecterUECharacter::MoveForward(float Value)
 {
 	if ((Controller != NULL) && (Value != 0.0f))
 	{
@@ -128,7 +123,12 @@ void ATestCCharacter::MoveForward(float Value)
 	}
 }
 
-void ATestCCharacter::MoveRight(float Value)
+bool AbattarycollecterUECharacter::IsAlive()
+{
+	return bIsAlive;
+}
+
+void AbattarycollecterUECharacter::MoveRight(float Value)
 {
 	if ( (Controller != NULL) && (Value != 0.0f) )
 	{

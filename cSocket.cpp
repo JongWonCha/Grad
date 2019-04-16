@@ -1,45 +1,49 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "cSocket.h"
+#include <iostream>
 #include "Runtime/Core/Public/GenericPlatform/GenericPlatformAffinity.h"
 #include "Runtime/Core/Public/HAL/RunnableThread.h"
 #include "MyPlayerController.h"
-#include <string>
 
-int saved_packet_size = 0;
-DWORD in_packet_size = 0;
-char packet_buffer[MAX_BUFFER];
 
-cSocket::cSocket() : StopTaskCounter(0)
+ClientSocket::ClientSocket():StopTaskCounter(0)
 {
 }
 
-cSocket::~cSocket()
+ClientSocket::~ClientSocket()
 {
 	delete Thread;
 	Thread = nullptr;
 
-	closesocket(ServerSocket.socket);
+	closesocket(ServerSocket);
 	WSACleanup();
 }
 
-bool cSocket::InitSocket()
+bool ClientSocket::InitSocket()
 {
 	WSADATA wsaData;
 	// 윈속 버전을 2.2로 초기화
 	int nRet = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (nRet != 0) {
-		std::cout << "Error : " << WSAGetLastError() << std::endl;		
+		// std::cout << "Error : " << WSAGetLastError() << std::endl;		
 		return false;
 	}
 
-	ServerSocket.socket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (ServerSocket.socket == INVALID_SOCKET) return false;
-	
+	// TCP 소켓 생성
+	// m_Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	ServerSocket = WSASocket(AF_INET, SOCK_STREAM, 0, NULL, 0, WSA_FLAG_OVERLAPPED);
+	// UdpServerSocket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, 0);
+	if (ServerSocket == INVALID_SOCKET) {
+		// std::cout << "Error : " << WSAGetLastError() << std::endl;
+		return false;
+	}
+
+	// std::cout << "socket initialize success." << std::endl;
 	return true;
 }
 
-bool cSocket::Connect(const char * pszIP, int nPort)
+bool ClientSocket::Connect(const char * pszIP, int nPort)
 {
 	// 접속할 서버 정보를 저장할 구조체
 	SOCKADDR_IN stServerAddr;
@@ -49,115 +53,139 @@ bool cSocket::Connect(const char * pszIP, int nPort)
 	stServerAddr.sin_port = htons(nPort);
 	stServerAddr.sin_addr.s_addr = inet_addr(pszIP);
 
-	int nRet = connect(ServerSocket.socket, (sockaddr*)&stServerAddr, sizeof(sockaddr));
-	if (nRet == SOCKET_ERROR) return false;
+	int nRet = connect(ServerSocket, (sockaddr*)&stServerAddr, sizeof(sockaddr));
+	if (nRet == SOCKET_ERROR) {
+		// std::cout << "Error : " << WSAGetLastError() << std::endl;
+		return false;
+	}
+
+	// std::cout << "Connection success..." << std::endl;
 
 	return true;
 }
 
-void cSocket::SendPacket(void * packet)
+void ClientSocket::EnrollCharacterInfo(location & info)
 {
-	char *p = reinterpret_cast<char *>(packet);
-	OVER_EX *ov = new OVER_EX;
-	ov->dataBuffer.len = p[0];
-	ov->dataBuffer.buf = ov->messageBuffer;
-	ov->is_recv = false;
-	memcpy(ov->messageBuffer, p, p[0]);
-	ZeroMemory(&ov->over, sizeof(ov->over));
-	int error = WSASend(ServerSocket.socket, &ov->dataBuffer, 1, 0, 0, &ov->over, NULL);
+	location loc;
+	loc.x = info.x;
+	loc.y = info.y;
+	loc.z = info.z;
+
+	loc.Yaw = info.Yaw;
+	loc.Pitch = info.Pitch;
+	loc.Roll = info.Roll;
+
+	// 캐릭터 정보 전송
+	int nSendLen = send(ServerSocket, (CHAR*)&loc, sizeof(location), 0);
+	if (nSendLen == -1)
+	{
+		return;
+	}
 }
 
-void cSocket::MakeNewPlayer(char &ci)
+void ClientSocket::SendMyLocation(location& ActorLocation)
 {
-	sc_packet_login packet;
+	location loc;
+	loc.x = ActorLocation.x;
+	loc.y = ActorLocation.y;
+	loc.z = ActorLocation.z;
 
-	packet.id = ci;
-	packet.size = sizeof(packet);
-	packet.type = SC_LOGIN;
+	loc.Yaw = ActorLocation.Yaw;
+	loc.Pitch= ActorLocation.Pitch;
+	loc.Roll = ActorLocation.Roll;
 
-	SendPacket(&packet);
+	// char		szOutMsg[1024];
+
+	// sprintf_s(szOutMsg, "X : %f, Y : %f, Z : %f\n", ActorLocation.X, ActorLocation.Y, ActorLocation.Z);
+
+	// int nSendLen = send(m_Socket, szOutMsg, strlen(szOutMsg), 0);	
+	int nSendLen = send(ServerSocket, (CHAR*)&loc, sizeof(location), 0);
+
+	if (nSendLen == -1) {
+		// std::cout << "Error : " << WSAGetLastError() << std::endl;
+		// return FVector();
+	}
 }
 
-void cSocket::SetPlayerController(AMyPlayerController* pPlayerController)
+cCharactersInfo * ClientSocket::RecvCharacterInfo(location& Recvp)
 {
+	CharactersInfo.WorldCharacterInfo->SessionId = Recvp.SessionId;
+	CharactersInfo.WorldCharacterInfo->x = Recvp.x;
+	CharactersInfo.WorldCharacterInfo->y = Recvp.y;
+	CharactersInfo.WorldCharacterInfo->z = Recvp.z;
+	CharactersInfo.WorldCharacterInfo->Yaw = Recvp.Yaw;
+	CharactersInfo.WorldCharacterInfo->Pitch = Recvp.Pitch;
+	CharactersInfo.WorldCharacterInfo->Roll = Recvp.Roll;
+	CharactersInfo.WorldCharacterInfo->IsAlive = Recvp.IsAlive;
+
+	return &CharactersInfo;
+}
+
+void ClientSocket::SetPlayerController(AMyPlayerController* pPlayerController)
+{
+	// 플레이어 컨트롤러 세팅
 	if (pPlayerController)
 	{
 		PlayerController = pPlayerController;
 	}
 }
 
-void cSocket::CloseSocket()
+void ClientSocket::CloseSocket()
 {
-	closesocket(ServerSocket.socket);
+	closesocket(ServerSocket);
 	WSACleanup();
 }
 
-bool cSocket::Init()
+bool ClientSocket::Init()
 {
 	return true;
 }
 
-uint32  cSocket::Run()
+uint32 ClientSocket::Run()
 {
-	// initial wait before starting
-	FPlatformProcess::Sleep(0.03);
-
-	DWORD iobyte, ioflag = 0;
-	// recv loop
+	// 서버로부터 데이터 수신
 	while (StopTaskCounter.GetValue() == 0 && PlayerController != nullptr)
 	{
-		int ret = WSARecv(ServerSocket.socket, &ServerSocket.over_ex.dataBuffer, 1, &iobyte, &ioflag, NULL, NULL);
-		BYTE *ptr = reinterpret_cast<BYTE *>(ServerSocket.over_ex.messageBuffer);
-
-		if (ret != 0)
+		location *Recvp;
+		int nRecvLen = recv(ServerSocket, (CHAR*)&recvBuffer, MAX_BUFFER, 0);
+		if (nRecvLen > 0)
 		{
-			if (iobyte + saved_packet_size >= in_packet_size) {
-				memcpy(packet_buffer + saved_packet_size, ptr, in_packet_size - saved_packet_size);
-				
-				static bool first_time = true;
-				switch (packet_buffer[1])
-				{
-				case SC_LOGIN:
-				{
-					sc_packet_login *packet = reinterpret_cast<sc_packet_login *>(packet_buffer);
-					PlayerController->MakePlayer(packet);
-				}
-				break;
-				case SC_PUT_PLAYER:
-					break;
-				case SC_REMOVE_PLAYER:
-					break;
-				case SC_MOVE_PLAYER:
-					break;
-				default:
-					break;
-				}
-			}
+			char* temp = reinterpret_cast<char *>(&Recvp);
+			memcpy(temp, recvBuffer, MAX_BUFFER);
+			Recvp = reinterpret_cast<location *>(&temp);
+
+			PlayerController->RecvWorldInfo(RecvCharacterInfo(*Recvp));
 		}
 	}
+
 	return 0;
 }
 
-void cSocket::Stop()
+void ClientSocket::Stop()
 {
+	// thread safety 변수를 조작해 while loop 가 돌지 못하게 함
 	StopTaskCounter.Increment();
 }
 
-bool cSocket::StartListen()
+void ClientSocket::Exit()
 {
+}
+
+bool ClientSocket::StartListen()
+{
+	// 스레드 시작
 	if (Thread != nullptr) return false;
-	Thread = FRunnableThread::Create(this, TEXT("cSocket"), 0, TPri_BelowNormal);
+	Thread = FRunnableThread::Create(this, TEXT("ClientSocket"), 0, TPri_BelowNormal);
 	return (Thread != nullptr);
 }
 
-void cSocket::StopListen()
+void ClientSocket::StopListen()
 {
-	if (Thread) {
-		Stop();
-		Thread->WaitForCompletion();
-		Thread->Kill();
-		delete Thread;
-		Thread = nullptr;
-		StopTaskCounter.Reset();
-	}
+	// 스레드 종료
+	Stop();
+	Thread->WaitForCompletion();
+	Thread->Kill();
+	delete Thread;
+	Thread = nullptr;
+	StopTaskCounter.Reset();
 }

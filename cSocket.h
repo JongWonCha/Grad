@@ -1,132 +1,101 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+
 #pragma once
-#pragma comment(lib, "ws2_32.lib")
-#define WIN32_LEAN_AND_MEAN
-#include <WinSock2.h>
-#include <iostream>
+
 #include "CoreMinimal.h"
+#define WIN32_LEAN_AND_MEAN
+#pragma comment(lib, "ws2_32.lib")
+#include <WinSock2.h>
+#include "Runtime/Core/Public/Math/Vector.h"
 #include "Runtime/Core/Public/HAL/Runnable.h"
 
 #define	MAX_BUFFER		1024
+#define SERVER_PORT		8000
+#define SERVER_IP		"127.0.0.1"
+#define MAX_CLIENTS		5
 
 class AMyPlayerController;
-constexpr int MAX_CLIENTS = 5;
+HANDLE			hIOCP;			// IOCP 객체 핸들
 
-//====================================================
-													//
-struct cs_packet_move {								//
-	char size;										//
-	char type;										//
-};													//
-													//
-constexpr int SC_LOGIN = 1;							//
-constexpr int SC_PUT_PLAYER = 2;					//
-constexpr int SC_REMOVE_PLAYER = 3;					//
-constexpr int SC_MOVE_PLAYER = 4;					//
-													//
-struct sc_packet_login {							//
-	char size;										//
-	char type;										//
-	char id;										//
-};													//
-													//
-struct sc_packet_put_player {						//
-	char size;										//
-	char type;										//
-	char id;										//
-	char x, y, z, yaw, pitch, roll;					//
-};													//
-													//
-struct sc_packet_remove_player {					//
-	char size;										//
-	char type;										//
-	char id;										//
-};													//
-													//
-struct sc_packet_move_player {						//
-	char size;										//
-	char type;										//
-	char id;										//
-	char x, y, z, yaw, pitch, roll;					//
-};													//
-//====================================================
-
-struct OVER_EX {
-	WSAOVERLAPPED	over;
-	WSABUF			dataBuffer;
+struct stSOCKETINFO
+{
+	WSAOVERLAPPED	overlapped;
+	WSABUF			dataBuf;
+	SOCKET			socket;
 	char			messageBuffer[MAX_BUFFER];
-	bool			is_recv;
+	int				recvBytes;
+	int				sendBytes;
 };
 
-class UserCharacter {
-public:
-	UserCharacter() {};
-	~UserCharacter() {};
+struct location
+{
+	int SessionId;
+	float x;
+	float y;
+	float z;
 
-	int id;					// 아이디
-	float x, y, z;			// 위치
-	float Yaw, Pitch, Roll;	// 회전
+	float Yaw;
+	float Pitch;
+	float Roll;
 
-	bool IsAlive;			// 생존
-	bool IsJump;			// 점프
-	float health;			// 체력
+	bool IsAlive;
 };
 
-class SOCKETINFO
+class cCharactersInfo
 {
 public:
-	bool in_use;						// 소켓 사용정보
-	OVER_EX over_ex;
-	SOCKET socket;
-	char packet_buffer[MAX_BUFFER];
-	int prev_size;
-	UserCharacter CharacterInfo;
+	cCharactersInfo() {};
+	~cCharactersInfo() {};
 
-	SOCKETINFO() {
-		in_use = false;
-		over_ex.dataBuffer.len = MAX_BUFFER;
-		over_ex.dataBuffer.buf = over_ex.messageBuffer;
-		over_ex.is_recv = true;
-		ZeroMemory(&over_ex.over, sizeof(over_ex.over));
-	}
+	location WorldCharacterInfo[MAX_CLIENTS];
+
 };
 
-class TESTC_API cSocket : public FRunnable
+/**
+ *
+ */
+class BATTARYCOLLECTERUE_API ClientSocket : public FRunnable
 {
 public:
-	cSocket();
-	virtual ~cSocket();
+	ClientSocket();
+	~ClientSocket();
 
 	bool InitSocket();
 	bool Connect(const char * pszIP, int nPort);
 
-	void SendPacket(void *packet);
+	// 초기 캐릭터 등록
+	void EnrollCharacterInfo(location& info);
 
-	void MakeNewPlayer(char &id);
+	void SendMyLocation(location& ActorLocation);
+
 	void SetPlayerController(AMyPlayerController* pPlayerController);
+
 	void CloseSocket();
 
-	// FRunnable Threaad members
+	// FRunnable Thread members	
 	FRunnableThread* Thread;
-	// For Stop this thread
 	FThreadSafeCounter StopTaskCounter;
 
 	// FRunnable override 함수
 	virtual bool Init();
 	virtual uint32 Run();
 	virtual void Stop();
+	virtual void Exit();
 
-	// 스레드 시작 종료
+	// 스레드 시작 및 종료
 	bool StartListen();
 	void StopListen();
 
-	// 싱글턴 객체 가져오기
-	static cSocket* GetSingleton()
+	static ClientSocket* GetSingleton()
 	{
-		static cSocket ins;
+		static ClientSocket ins;
 		return &ins;
 	}
 private:
-	SOCKETINFO ServerSocket;
+	SOCKET ServerSocket;
+	char 	recvBuffer[MAX_BUFFER];
+	cCharactersInfo CharactersInfo;
 	AMyPlayerController* PlayerController;
+
+	cCharactersInfo* RecvCharacterInfo(location& Recvp);
 };

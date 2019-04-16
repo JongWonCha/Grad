@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "cSocket.h"
-#include "TestCCharacter.generated.h"
+#include "battarycollecterUECharacter.generated.h"
 
 UCLASS(config=Game)
-class ATestCCharacter : public ACharacter
+class AbattarycollecterUECharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -20,7 +20,7 @@ class ATestCCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 public:
-	ATestCCharacter();
+	AbattarycollecterUECharacter();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -29,6 +29,9 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UFUNCTION(BlueprintPure, Category = "Properties")
+	bool IsAlive();
 
 protected:
 
@@ -58,7 +61,6 @@ protected:
 
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
-	virtual void Tick(float DeltaTime) override;
 
 protected:
 	// APawn interface
@@ -70,5 +72,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+private:
+	bool bIsAlive;
 };
 
